@@ -5,6 +5,9 @@ let cookieParser = require('cookie-parser');
 let logger       = require('morgan');
 const helmet     = require("helmet");
 
+// config environments
+require('dotenv').config()
+
 // load routes
 let usersRouter = require('./routes/users');
 
