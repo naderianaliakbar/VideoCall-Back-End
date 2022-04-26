@@ -1,11 +1,14 @@
 let express                    = require('express');
 let router                     = express.Router();
 const {body, validationResult} = require('express-validator');
+const db                       = require('../modules/db');
 
 
 /* GET users listing. */
 router.get('/', function (req, res, next) {
-    res.send('respond with a resource ');
+    db.getDB().collection('users').find({}).toArray().then((users) => {
+        res.json(users);
+    });
 });
 
 module.exports = router;
