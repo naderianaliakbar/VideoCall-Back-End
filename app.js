@@ -4,6 +4,7 @@ let path         = require('path');
 let cookieParser = require('cookie-parser');
 let logger       = require('morgan');
 const helmet     = require("helmet");
+const cors       = require('cors');
 
 // config environments
 require('dotenv').config()
@@ -20,6 +21,7 @@ app.use(express.json());
 app.use(express.urlencoded({extended: false}));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
 
 // add routes
 app.use('/api/v1/users', usersRouter);

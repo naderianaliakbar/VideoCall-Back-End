@@ -1,10 +1,11 @@
-let express                    = require('express');
-let router                     = express.Router();
-const {body, validationResult} = require('express-validator');
-const db                       = require('../modules/db');
-const {checkValidation, check} = require("../modules/helper");
-const {generateAccessToken}    = require("../modules/auth");
-const md5                      = require('md5');
+let express                                    = require('express');
+let router                                     = express.Router();
+const {body, validationResult}                 = require('express-validator');
+const db                                       = require('../modules/db');
+const {checkValidation, check}                 = require("../modules/helper");
+const {generateAccessToken, authenticateToken} = require("../modules/auth");
+const md5                                      = require('md5');
+const {ObjectID}                               = require("mongodb");
 
 
 router.post(
@@ -15,7 +16,7 @@ router.post(
         // check validation
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(406).json({errors: errors.array()});
+            return res.status(400).json({errors: errors.array()});
         }
 
         // search in db for user
@@ -26,9 +27,7 @@ router.post(
 
             // not found
             if (!user) {
-                return res.status(401).json({
-                    message: 'E-mail or Password is Wrong!',
-                });
+                return res.sendStatus(401);
             } else {
 
                 // create token
@@ -41,10 +40,7 @@ router.post(
 
                 // send token and user info
                 res.json({
-                    firstName: user.firstName,
-                    lastName : user.lastName,
-                    email    : user.email,
-                    token    : token
+                    token: token
                 });
             }
         });
@@ -62,7 +58,7 @@ router.post(
         // check validation
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(406).json({errors: errors.array()});
+            return res.status(400).json({errors: errors.array()});
         }
 
         // search in db for user
@@ -77,7 +73,8 @@ router.post(
                     firstName: req.body.firstName,
                     lastName : req.body.lastName,
                     email    : req.body.email,
-                    password : md5(req.body.password)
+                    password : md5(req.body.password),
+                    role     : 0
                 });
 
                 // create token
@@ -90,18 +87,30 @@ router.post(
 
                 // send token and user info
                 res.json({
-                    firstName: req.body.firstName,
-                    lastName : req.body.lastName,
-                    email    : req.body.email,
-                    token    : token
+                    token: token
                 });
             } else {
                 return res.status(406).json({
-                    message: 'There is already a user with this email!',
+                    message: 'There is a user with this email. Please enter another email.',
                 });
             }
         });
 
+    }
+);
+
+router.get(
+    '/me',
+    authenticateToken,
+    function (req, res) {
+        // search in db for user
+        res.json({
+            user: {
+                firstName: req.user.data.firstName,
+                lastName : req.user.data.lastName,
+                email    : req.user.data.email
+            }
+        });
     }
 );
 
