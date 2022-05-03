@@ -2,12 +2,12 @@ let express                                    = require('express');
 let router                                     = express.Router();
 const {body, validationResult}                 = require('express-validator');
 const db                                       = require('../modules/db');
-const {checkValidation, check}                 = require("../modules/helper");
+const {generateRandomColor}                    = require("../modules/helper");
 const {generateAccessToken, authenticateToken} = require("../modules/auth");
 const md5                                      = require('md5');
 const {ObjectID}                               = require("mongodb");
 
-
+// LOGIN POST
 router.post(
     '/login',
     body('email').isEmail(), // check E-mail
@@ -32,10 +32,9 @@ router.post(
 
                 // create token
                 let token = generateAccessToken({
-                    id       : user._id.toString(),
-                    firstName: user.firstName,
-                    lastName : user.lastName,
-                    email    : user.email,
+                    id   : user._id,
+                    email: user.email,
+                    role : user.role
                 });
 
                 // send token and user info
@@ -48,6 +47,7 @@ router.post(
     }
 );
 
+// REGISTER POST
 router.post(
     '/register',
     body('email').isEmail(), // check E-mail
@@ -68,21 +68,24 @@ router.post(
 
             // not found
             if (!user) {
+                // generate color for user
+                let color = generateRandomColor();
+
                 // add user to db
                 let resultInsert = await db.getDB().collection('users').insertOne({
                     firstName: req.body.firstName,
                     lastName : req.body.lastName,
                     email    : req.body.email,
                     password : md5(req.body.password),
+                    color    : color,
                     role     : 0
                 });
 
                 // create token
                 let token = generateAccessToken({
-                    id       : resultInsert.insertedId.toString(),
-                    firstName: req.body.firstName,
-                    lastName : req.body.lastName,
-                    email    : req.body.email,
+                    id   : resultInsert.insertedId,
+                    email: req.body.email,
+                    role : 0
                 });
 
                 // send token and user info
@@ -99,18 +102,32 @@ router.post(
     }
 );
 
+// GET ME INFO
 router.get(
     '/me',
     authenticateToken,
     function (req, res) {
         // search in db for user
-        res.json({
-            user: {
-                firstName: req.user.data.firstName,
-                lastName : req.user.data.lastName,
-                email    : req.user.data.email
+        db.getDB().collection('users').findOne({
+            _id: ObjectID(req.user.data.id)
+        }).then(async (user) => {
+
+            // not found
+            if (!user) {
+                return res.sendStatus(401);
+            } else {
+                res.json({
+                    user: {
+                        firstName: user.firstName,
+                        lastName : user.lastName,
+                        email    : user.email,
+                        color    : user.color,
+                        avatar   : user.avatar
+                    }
+                });
             }
         });
+
     }
 );
 

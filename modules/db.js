@@ -1,6 +1,5 @@
 const MongoClient = require('mongodb').MongoClient;
 const url         = process.env.MongoDB_URL;
-console.log(url);
 let _db;
 
 module.exports = {
