@@ -11,6 +11,7 @@ require('dotenv').config()
 
 // load routes
 let usersRouter = require('./routes/users');
+let authRouter  = require('./routes/auth');
 
 let app = express();
 
@@ -25,5 +26,6 @@ app.use(cors());
 
 // add routes
 app.use('/api/v1/users', usersRouter);
+app.use('/api/v1/auth', authRouter);
 
 module.exports = app;
