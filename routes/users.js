@@ -4,6 +4,69 @@ const {body, validationResult} = require('express-validator');
 const db                       = require('../modules/db');
 const {authenticateToken}      = require("../modules/auth");
 const {ObjectID}               = require("mongodb");
+const md5                      = require('md5');
+let mime                       = require('mime');
+const fs                       = require("fs");
+
+router.put(
+    '/uploadAvatar',
+    authenticateToken,
+    body('avatar').notEmpty().isString(),
+    function (req, res) {
+
+        // check validation
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({errors: errors.array()});
+        }
+
+        try {
+
+            let base64File = req.body.avatar.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+
+            if (base64File.length !== 3) {
+                res.sendStatus(406);
+            }
+
+            // write file
+            let fileName = md5(Date.now()) + '.' + mime.getExtension(base64File[1]);
+            let path     = './public/avatars/' + fileName;
+            fs.writeFileSync(path, base64File[2], {encoding: 'base64'});
+
+            //get last avatar
+            db.getDB().collection('users').findOne({
+                _id: ObjectID(req.user.data.id)
+            }).then(function (user) {
+                // remove last avatar
+                if (user.avatar) {
+                    let filePath = './public/avatars/' + user.avatar;
+                    if (fs.existsSync(filePath)) {
+                        fs.unlinkSync(filePath);
+                    }
+                }
+
+                // update avatar in db
+                db.getDB().collection('users').updateOne(
+                    {
+                        _id: ObjectID(req.user.data.id)
+                    },
+                    {
+                        $set: {
+                            avatar: fileName
+                        }
+                    }, function (err, result) {
+                        if (err) throw err;
+                        return res.json({
+                            message: 'done'
+                        });
+                    });
+
+            });
+
+        } catch (e) {
+            return res.sendStatus(406);
+        }
+    });
 
 // USER PUT
 router.put(
