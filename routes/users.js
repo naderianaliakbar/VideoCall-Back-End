@@ -9,7 +9,7 @@ let mime                       = require('mime');
 const fs                       = require("fs");
 
 router.put(
-    '/uploadAvatar',
+    '/me/avatar',
     authenticateToken,
     body('avatar').notEmpty().isString(),
     function (req, res) {
@@ -29,7 +29,14 @@ router.put(
             }
 
             // write file
-            let fileName = md5(Date.now()) + '.' + mime.getExtension(base64File[1]);
+            let extension = mime.getExtension(base64File[1]);
+            let validExt = ['jpg', 'png', 'gif', 'jpeg'];
+
+            if(!validExt.includes(extension)){
+                return res.sendStatus(406);
+            }
+
+            let fileName = md5(Date.now()) + '.' + extension;
             let path     = './public/avatars/' + fileName;
             fs.writeFileSync(path, base64File[2], {encoding: 'base64'});
 
@@ -66,6 +73,34 @@ router.put(
         } catch (e) {
             return res.sendStatus(406);
         }
+    });
+
+router.delete(
+    '/me/avatar',
+    authenticateToken,
+    function (req, res) {
+
+        //get last avatar
+        db.getDB().collection('users').findOne({
+            _id: ObjectID(req.user.data.id)
+        }).then(function (user) {
+            // remove last avatar
+            if (user.avatar) {
+                let filePath = './public/avatars/' + user.avatar;
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                }
+            }
+
+            // update db
+            db.getDB().collection('users').updateOne({
+                _id: ObjectID(req.user.data.id)
+            }, {$set: {avatar: ''}}).then(function () {
+                res.sendStatus(200);
+            });
+
+        });
+
     });
 
 // USER PUT
