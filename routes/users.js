@@ -240,7 +240,7 @@ router.get(
             ).toArray(function (err, contacts) {
                 if (err) console.log(err);
                 return res.json({
-                    contacts: contacts
+                    contacts: contacts ?? []
                 });
             });
 
