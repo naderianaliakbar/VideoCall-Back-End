@@ -10,8 +10,10 @@ const cors       = require('cors');
 require('dotenv').config()
 
 // load routes
-let usersRouter = require('./routes/users');
-let authRouter  = require('./routes/auth');
+let usersRouter    = require('./routes/users');
+let authRouter     = require('./routes/auth');
+let contactsRouter = require('./routes/contacts');
+let callsRouter    = require('./routes/calls');
 
 let app = express();
 
@@ -27,5 +29,7 @@ app.use(cors());
 // add routes
 app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/contacts', contactsRouter);
+app.use('/api/v1/calls', callsRouter);
 
 module.exports = app;
