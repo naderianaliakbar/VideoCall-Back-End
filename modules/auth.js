@@ -5,7 +5,7 @@ module.exports = {
         return jwt.sign(
             {
                 data     : data,
-                expiresIn: '1d',
+                expiresIn: 60 * 60 * 24 * 7,
                 algorithm: 'RS256'
             },
             process.env.TOKEN_SECRET
