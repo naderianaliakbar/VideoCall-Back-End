@@ -229,15 +229,17 @@ router.get(
 
         //get user contacts
         db.getDB().collection('users').findOne(
-            {_id: ObjectID(req.user.data.id), firstName: "AliAkbar"}
+            {_id: ObjectID(req.user.data.id)}
         ).then(function (user) {
-            console.log(user.contacts);
+
             // get contacts detail
             db.getDB().collection('users').find(
-                {_id: {$all: user.contacts}}
+                {_id: {$in: user.contacts}}
+            ).project(
+                {firstName: 1, lastName: 1, email: 1, avatar: 1, color: 1, _id: 0}
             ).toArray(function (err, contacts) {
                 if (err) console.log(err);
-                res.json({
+                return res.json({
                     contacts: contacts
                 });
             });
