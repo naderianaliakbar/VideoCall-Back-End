@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // init app and requirement
-let app   = require('../app');
-let debug = require('debug')('exoroya-backend:server');
-let http  = require('http');
-let db    = require('../modules/db');
-let port  = normalizePort(process.env.PORT || '5000');
+let app       = require('../app');
+let debug     = require('debug')('exoroya-backend:server');
+let http      = require('http');
+let db        = require('../modules/db');
+let websocket = require('../modules/websocket');
+let port      = normalizePort(process.env.PORT || '5000');
 
 // set port
 app.set('port', port);
@@ -16,6 +17,9 @@ let server = http.createServer(app);
 db.connect(function (err, client) {
     if (err) console.log(err);
 });
+
+// create socket server
+websocket.createServer(server);
 
 // listen server
 server.listen(port);
