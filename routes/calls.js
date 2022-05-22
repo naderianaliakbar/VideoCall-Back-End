@@ -11,7 +11,8 @@ const {ObjectID}               = require("mongodb");
  *  1 => started
  *  2 => accepted
  *  3 => rejected
- *  4 => finished
+ *  4 => busy
+ *  5 => ended
  *  */
 
 /*

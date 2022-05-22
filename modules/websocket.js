@@ -1,10 +1,11 @@
 const {Server}    = require("socket.io");
 const socketIoJwt = require('socketio-jwt');
+const db          = require('../modules/db');
+const {ObjectID}  = require("mongodb");
 
 // init variables
 let io;
-let Clients = [];
-let Rooms   = [];
+let clients = [];
 
 module.exports = {
     createServer: function (server, callback) {
@@ -24,131 +25,188 @@ module.exports = {
         // create handler
         io.on('connection', (socket) => {
 
-            socket.on("userConnect", function (username) {
+            socket.on("getAccess", function (username) {
+                let userId = socket.decoded_token.data.id;
 
-                if (Clients.find((client) => client.username === username)) {
+                if (clients[userId]) {
+                    // user has active session but wants to connect
                     socket.emit('userConnect', {
                         status : false,
-                        message: 'isOnline'
+                        message: 'hasActiveSession'
                     });
+                    // destroy connection
+                    socket.destroy();
                 } else {
-                    socket.nikname = username;
-                    Clients.push({
-                        username: username,
-                        socketId: socket.id
-                    });
+                    // new user connected
+                    socket.nikname  = userId;
+                    clients[userId] = {
+                        email   : socket.decoded_token.data.email,
+                        socketId: socket.id,
+                        room    : null,
+                    };
+
+                    // give access to connect
                     socket.emit('userConnect', {
                         status : true,
                         message: 'userConnected'
                     });
                 }
-                // console.log();
+
                 // console.log(Clients);
-                // console.log(Clients[socket.id] + " is connected");
+                console.log(Clients[userId]['email'] + " is connected");
             });
 
-            socket.on('checkCall', function (username) {
-                let findUser = Clients.find((client) => client.username === username);
-                if (findUser) {
-                    let findRoomCaller   = Rooms.find((room) => room.caller == username);
-                    let findRoomReceiver = Rooms.find((room) => room.receiver == username);
-                    if (!findRoomCaller && !findRoomReceiver) {
-                        socket.to(findUser.socketId).emit('someOneCallYou', socket.nikname);
-                        socket.emit('checkCall', {
-                            status : true,
-                            message: 'calling'
-                        });
+            socket.on('prepareCall', function (userId, roomId) {
+                // validate
+                if (userId) {
+                    // check exists
+                    if (clients[userId]) {
+
+                        // check user room
+                        if (!clients[userId]['room']) {
+                            // update db status (started)
+                            db.getDB().collection('calls').updateOne(
+                                {_id: ObjectID(roomId)},
+                                {$set: {status: 1}}
+                            );
+
+                            socket.to(clients[userId]['socketId']).emit('notifyCall', socket.nikname);
+                            socket.emit('prepareCall', {
+                                status : true,
+                                message: 'ringing'
+                            });
+                        } else {
+                            // update db status (busy)
+                            db.getDB().collection('calls').updateOne(
+                                {_id: ObjectID(roomId)},
+                                {$set: {status: 4}}
+                            );
+
+                            // user is busy
+                            socket.emit('prepareCall', {
+                                status : false,
+                                message: 'user is busy'
+                            });
+                        }
+
                     } else {
-                        socket.emit('checkCall', {
+                        socket.emit('prepareCall', {
                             status : false,
-                            message: 'busy'
+                            message: 'offline'
                         });
                     }
                 } else {
-                    socket.emit('checkCall', {
+                    socket.emit('prepareCall', {
                         status : false,
-                        message: 'offline'
+                        message: 'user id is wrong'
                     });
                 }
             });
 
-            socket.on('acceptCall', function (callerUsername, peerId) {
-                let findUser = Clients.find((client) => client.username === callerUsername);
-                socket.to(findUser.socketId).emit('callAccepted', peerId);
-                Rooms.push({
-                    caller  : callerUsername,
-                    receiver: socket.nikname
-                });
-                // console.log('room added', Rooms);
-            });
+            socket.on('acceptCall', function (callerId, peerId, roomId) {
+                // update db status (accepted)
+                db.getDB().collection('calls').updateOne(
+                    {_id: ObjectID(roomId)},
+                    {$set: {status: 2}}
+                );
 
+                // update user status
+                clients[socket.nikname]['room'] = roomId;
+                clients[callerId]['room']       = roomId;
 
-            // // Send Offer To Start Connection
-            // socket.on('offer', (username, description) => {
-            //     let findUser = Clients.find((client) => client.username === username);
-            //     socket.to(findUser.socketId).emit('offer', socket.nikname, description);
-            // });
-            //
-            // // Send Answer From Offer Request
-            // socket.on('answer', (username, description) => {
-            //     let findUser = Clients.find((client) => client.username === username);
-            //     socket.to(findUser.socketId).emit('answer', socket.nikname, description);
-            // });
-            //
-            // // Send Signals to Establish the Communication Channel
-            // socket.on('candidate', (username, signal) => {
-            //     let findUser = Clients.find((client) => client.username === username);
-            //     socket.to(findUser.socketId).emit('candidate', socket.nikname, signal);
-            // });
-
-            socket.on('declineCall', function (callerUsername) {
-                let findUser = Clients.find((client) => client.username === callerUsername);
-                socket.to(findUser.socketId).emit('callDeclined');
-            });
-
-            socket.on('getRemoteStreamConfigs', function (username, configs) {
-                let findUser = Clients.find((client) => client.username === username);
-                socket.to(findUser.socketId).emit('getRemoteStreamConfigs', configs);
-            });
-
-            socket.on('finishCall', function (username) {
-                let findUser = Clients.find((client) => client.username === username);
-                socket.to(findUser.socketId).emit('finishCall');
-
-                // removing room
-                let findRoomCaller   = Rooms.find((room) => room.caller == username);
-                let findRoomReceiver = Rooms.find((room) => room.receiver == username);
-                if (findRoomCaller) {
-                    Rooms.splice(Rooms.indexOf(findRoomCaller), 1);
-                    // console.log('room removed', Rooms);
-                }
-                if (findRoomReceiver) {
-                    Rooms.splice(Rooms.indexOf(findRoomReceiver), 1);
-                    // console.log('room removed', Rooms);
+                if (clients[callerId]) {
+                    socket.to(clients[callerId]['socketId']).emit('callAccepted', peerId);
                 }
 
+            });
+
+            socket.on('rejectCall', function (userId, roomId) {
+                // update db status (rejected)
+                db.getDB().collection('calls').updateOne(
+                    {_id: ObjectID(roomId)},
+                    {$set: {status: 3}}
+                );
+                if (clients[userId]) {
+                    socket.to(clients[userId]['socketId']).emit('callDeclined');
+                }
+            });
+
+            socket.on('streamAction', function (userId, configs) {
+                if (clients[userId]) {
+                    socket.to(clients[userId]['socketId']).emit('getRemoteStreamConfigs', configs);
+                }
+            });
+
+            socket.on('endCall', function (userId) {
+                // update db status (ended)
+                db.getDB().collection('calls').updateOne(
+                    {_id: ObjectID(clients[socket.nikname]['room'])},
+                    {$set: {status: 5, endDate: new Date()}}
+                );
+
+                if (clients[userId]) {
+                    socket.to(clients[userId]['socketId']).emit('endCall');
+                    clients[userId]['room'] = null;
+                }
+
+                // update user status
+                clients[socket.nikname]['room'] = null;
+
+            });
+
+            // Send Offer To Start Connection
+            socket.on('offer', (userId, description) => {
+                if (clients[userId]) {
+                    socket.to(clients[userId]['socketId']).emit('offer', socket.nikname, description);
+                }
+            });
+
+            // Send Answer From Offer Request
+            socket.on('answer', (userId, description) => {
+                if (clients[userId]) {
+                    socket.to(clients[userId]['socketId']).emit('answer', socket.nikname, description);
+                }
+            });
+
+            // Send Signals to Establish the Communication Channel
+            socket.on('candidate', (userId, signal) => {
+                if (clients[userId]) {
+                    socket.to(clients[userId]['socketId']).emit('candidate', socket.nikname, signal);
+                }
             });
 
             socket.on("disconnect", function () {
-                let findUser = Clients.find((client) => client.socketId === socket.id);
-                if (findUser) {
-                    let findRoomCaller   = Rooms.find((room) => room.caller == findUser.username);
-                    let findRoomReceiver = Rooms.find((room) => room.receiver == findUser.username);
-                    if (findRoomCaller) {
-                        Rooms.splice(Rooms.indexOf(findRoomCaller), 1);
-                        let findReceiver = Clients.find((client) => client.username === findRoomCaller.receiver);
-                        socket.to(findReceiver.socketId).emit('finishCall');
-                        // console.log('room removed', Rooms);
-                    }
-                    if (findRoomReceiver) {
-                        Rooms.splice(Rooms.indexOf(findRoomReceiver), 1);
-                        let findCaller = Clients.find((client) => client.username === findRoomReceiver.caller);
-                        socket.to(findCaller.socketId).emit('finishCall');
-                        // console.log('room removed', Rooms);
-                    }
 
-                    Clients.splice(Clients.indexOf(findUser), 1);
+                if (clients[socket.nikname]['room']) {
+
+                    // get room users
+                    db.getDB().collection('users').findOne({
+                        _id: ObjectID(clients[socket.nikname]['room'])
+                    }).then(function (room) {
+
+                        // update db status (ended)
+                        db.getDB().collection('calls').updateOne(
+                            {_id: ObjectID(clients[socket.nikname]['room'])},
+                            {$set: {status: 5, endDate: new Date()}}
+                        );
+
+                        let peerUser = '';
+
+                        if (socket.nikname === room.caller.toString()) {
+                            peerUser = room.receiver.toString();
+                        } else {
+                            peerUser = room.caller.toString();
+                        }
+
+                        if (clients[peerUser]) {
+                            socket.to(clients[peerUser]['socketId']).emit('endCall');
+                        }
+
+                        clients[room.caller.toString()]['room']   = null;
+                        clients[room.receiver.toString()]['room'] = null;
+                    });
                 }
+
             });
 
         });
