@@ -14,6 +14,7 @@ module.exports = {
         io = new Server(server, {
             serveClient: false, // serve socket io files
             transports : ['websocket'], // only websocket can connect
+            allowEIO3: true
         });
 
         // add jwt auth
@@ -25,36 +26,33 @@ module.exports = {
         // create handler
         io.on('connection', (socket) => {
 
-            socket.on("getAccess", function (username) {
-                let userId = socket.decoded_token.data.id;
+            // get access to user
+            let socketUserId = socket.decoded_token.data.id;
+            if (clients[socketUserId]) {
+                // user has active session but wants to connect
+                socket.emit('userConnect', {
+                    status : false,
+                    message: 'hasActiveSession'
+                });
+                // destroy connection
+                socket.disconnect();
+            } else {
+                // new user connected
+                socket.nikname  = socketUserId;
+                clients[socketUserId] = {
+                    email   : socket.decoded_token.data.email,
+                    socketId: socket.id,
+                    room    : null,
+                };
 
-                if (clients[userId]) {
-                    // user has active session but wants to connect
-                    socket.emit('userConnect', {
-                        status : false,
-                        message: 'hasActiveSession'
-                    });
-                    // destroy connection
-                    socket.destroy();
-                } else {
-                    // new user connected
-                    socket.nikname  = userId;
-                    clients[userId] = {
-                        email   : socket.decoded_token.data.email,
-                        socketId: socket.id,
-                        room    : null,
-                    };
+                // give access to connect
+                socket.emit('userConnect', {
+                    status : true,
+                    message: 'userConnected'
+                });
+            }
 
-                    // give access to connect
-                    socket.emit('userConnect', {
-                        status : true,
-                        message: 'userConnected'
-                    });
-                }
-
-                // console.log(Clients);
-                console.log(Clients[userId]['email'] + " is connected");
-            });
+            console.log(clients[socketUserId]['email'] + " is connected");
 
             socket.on('prepareCall', function (userId, roomId) {
                 // validate
@@ -177,7 +175,10 @@ module.exports = {
 
             socket.on("disconnect", function () {
 
-                if (clients[socket.nikname]['room']) {
+                console.log(clients);
+                console.log(socket.nikname);
+
+                if (clients[socket.nikname] && clients[socket.nikname]['room']) {
 
                     // get room users
                     db.getDB().collection('users').findOne({
@@ -204,6 +205,8 @@ module.exports = {
 
                         clients[room.caller.toString()]['room']   = null;
                         clients[room.receiver.toString()]['room'] = null;
+
+                        delete clients[socket.nikname];
                     });
                 }
 
