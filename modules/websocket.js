@@ -177,7 +177,7 @@ module.exports = {
 
                     // user has active room
                     if(clients[socket.nikname]['room']) {
-                        // get room users
+                        // get room info
                         db.getDB().collection('calls').findOne({
                             _id: ObjectID(clients[socket.nikname]['room'])
                         }).then(function (room) {
