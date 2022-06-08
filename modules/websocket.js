@@ -53,53 +53,48 @@ module.exports = {
             }
 
             socket.on('prepareCall', function (userId, roomId) {
-                // validate
-                if (userId) {
-                    // check exists
-                    if (clients[userId]) {
+                // check exists
+                if (clients[userId]) {
 
-                        // check user room
-                        if (!clients[userId]['room']) {
-                            // update db status (started)
-                            db.getDB().collection('calls').updateOne(
-                                {_id: ObjectID(roomId)},
-                                {$set: {status: 1}}
-                            );
+                    // check user room
+                    if (!clients[userId]['room']) {
+                        // update db status (started)
+                        db.getDB().collection('calls').updateOne(
+                            {_id: ObjectID(roomId)},
+                            {$set: {status: 1}}
+                        );
 
-                            socket.to(clients[userId]['socketId']).emit('notifyCall', socket.nikname);
-                            socket.emit('prepareCall', {
-                                status : true,
-                                message: 'ringing'
-                            });
-                        } else {
-                            // update db status (busy)
-                            db.getDB().collection('calls').updateOne(
-                                {_id: ObjectID(roomId)},
-                                {$set: {status: 4}}
-                            );
+                        // update user status
+                        clients[socket.nikname]['room'] = roomId;
 
-                            // user is busy
-                            socket.emit('prepareCall', {
-                                status : false,
-                                message: 'user is busy'
-                            });
-                        }
-
+                        socket.to(clients[userId]['socketId']).emit('notifyCall', roomId);
+                        socket.emit('prepareCall', {
+                            status : true,
+                            message: 'ringing'
+                        });
                     } else {
+                        // update db status (busy)
+                        db.getDB().collection('calls').updateOne(
+                            {_id: ObjectID(roomId)},
+                            {$set: {status: 4}}
+                        );
+
+                        // user is busy
                         socket.emit('prepareCall', {
                             status : false,
-                            message: 'offline'
+                            message: 'user is busy'
                         });
                     }
+
                 } else {
                     socket.emit('prepareCall', {
                         status : false,
-                        message: 'user id is wrong'
+                        message: 'offline'
                     });
                 }
             });
 
-            socket.on('acceptCall', function (callerId, peerId, roomId) {
+            socket.on('acceptCall', function (callerId, roomId) {
                 // update db status (accepted)
                 db.getDB().collection('calls').updateOne(
                     {_id: ObjectID(roomId)},
@@ -111,9 +106,8 @@ module.exports = {
                 clients[callerId]['room']       = roomId;
 
                 if (clients[callerId]) {
-                    socket.to(clients[callerId]['socketId']).emit('callAccepted', peerId);
+                    socket.to(clients[callerId]['socketId']).emit('callAccepted');
                 }
-
             });
 
             socket.on('rejectCall', function (userId, roomId) {
@@ -123,7 +117,7 @@ module.exports = {
                     {$set: {status: 3}}
                 );
                 if (clients[userId]) {
-                    socket.to(clients[userId]['socketId']).emit('callDeclined');
+                    socket.to(clients[userId]['socketId']).emit('callRejected');
                 }
             });
 
