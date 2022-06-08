@@ -12,7 +12,7 @@ module.exports = {
 
         // create socket io server
         io = new Server(server, {
-            serveClient: false, // serve socket io files
+            serveClient: true, // serve socket io files
             transports : ['websocket'], // only websocket can connect
             allowEIO3: true
         });
@@ -51,8 +51,6 @@ module.exports = {
                     message: 'userConnected'
                 });
             }
-
-            console.log(clients[socketUserId]['email'] + " is connected");
 
             socket.on('prepareCall', function (userId, roomId) {
                 // validate
@@ -175,39 +173,39 @@ module.exports = {
 
             socket.on("disconnect", function () {
 
-                console.log(clients);
-                console.log(socket.nikname);
+                if (clients[socket.nikname]) {
 
-                if (clients[socket.nikname] && clients[socket.nikname]['room']) {
+                    // user has active room
+                    if(clients[socket.nikname]['room']) {
+                        // get room users
+                        db.getDB().collection('calls').findOne({
+                            _id: ObjectID(clients[socket.nikname]['room'])
+                        }).then(function (room) {
 
-                    // get room users
-                    db.getDB().collection('users').findOne({
-                        _id: ObjectID(clients[socket.nikname]['room'])
-                    }).then(function (room) {
+                            // update db status (ended)
+                            db.getDB().collection('calls').updateOne(
+                                {_id: ObjectID(clients[socket.nikname]['room'])},
+                                {$set: {status: 5, endDate: new Date()}}
+                            );
 
-                        // update db status (ended)
-                        db.getDB().collection('calls').updateOne(
-                            {_id: ObjectID(clients[socket.nikname]['room'])},
-                            {$set: {status: 5, endDate: new Date()}}
-                        );
+                            let peerUser = '';
 
-                        let peerUser = '';
+                            if (socket.nikname === room.caller.toString()) {
+                                peerUser = room.receiver.toString();
+                            } else {
+                                peerUser = room.caller.toString();
+                            }
 
-                        if (socket.nikname === room.caller.toString()) {
-                            peerUser = room.receiver.toString();
-                        } else {
-                            peerUser = room.caller.toString();
-                        }
+                            if (clients[peerUser]) {
+                                socket.to(clients[peerUser]['socketId']).emit('endCall');
+                            }
 
-                        if (clients[peerUser]) {
-                            socket.to(clients[peerUser]['socketId']).emit('endCall');
-                        }
+                            clients[room.caller.toString()]['room']   = null;
+                            clients[room.receiver.toString()]['room'] = null;
+                        });
+                    }
 
-                        clients[room.caller.toString()]['room']   = null;
-                        clients[room.receiver.toString()]['room'] = null;
-
-                        delete clients[socket.nikname];
-                    });
+                    delete clients[socket.nikname];
                 }
 
             });
