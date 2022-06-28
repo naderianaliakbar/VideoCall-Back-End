@@ -1,8 +1,6 @@
 module.exports           = {
     generateRandomColor() {
         let colors = [
-            'red',
-            'green',
             'blue',
             'teal',
             'pink',

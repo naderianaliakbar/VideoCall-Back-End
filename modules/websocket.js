@@ -191,15 +191,19 @@ module.exports = {
                             }
 
                             if (clients[peerUser]) {
-                                socket.to(clients[peerUser]['socketId']).emit('endCall');
+                                socket.to(clients[peerUser]['socketId']).emit('endCall',room._id);
                             }
 
                             clients[room.caller.toString()]['room']   = null;
-                            clients[room.receiver.toString()]['room'] = null;
+                            if(clients[room.receiver]) {
+                                clients[room.receiver.toString()]['room'] = null;
+                            }
                         });
                     }
 
-                    delete clients[socket.nikname];
+                    setTimeout(() => {
+                        delete clients[socket.nikname];
+                    },200);
                 }
 
             });

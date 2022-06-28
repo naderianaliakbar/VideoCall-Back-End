@@ -80,7 +80,7 @@ router.get(
             db.getDB().collection('users').find(
                 {_id: {$in: user.contacts}}
             ).project(
-                {firstName: 1, lastName: 1, email: 1, avatar: 1, color: 1, _id: 1}
+                {firstName: 1, lastName: 1, avatar: 1, color: 1, _id: 1}
             ).toArray(function (err, contacts) {
                 if (err) console.log(err);
                 return res.json({

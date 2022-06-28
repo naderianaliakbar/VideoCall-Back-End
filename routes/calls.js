@@ -87,16 +87,36 @@ router.get(
         db.getDB().collection('calls').findOne({
             _id: ObjectID(req.params.id)
         }).then(function (room) {
+
+            if (!room) {
+                res.sendStatus(400);
+            }
+
             // convert peer ids
             room.receiver = room.receiver.toString();
-            room.caller = room.caller.toString();
+            room.caller   = room.caller.toString();
 
             // check permission
-            if(room.receiver !== req.user.data.id && room.caller !== req.user.data.id) {
+            if (room.receiver !== req.user.data.id && room.caller !== req.user.data.id) {
                 return res.sendStatus(403);
             }
 
-            res.json(room);
+            // get contacts detail
+            db.getDB().collection('users').findOne(
+                {_id: (room.caller === req.user.data.id) ? ObjectID(room.receiver) : ObjectID(room.caller)}
+            ).then(function (user) {
+                if (user) {
+                    room.user = {
+                        firstName: user.firstName,
+                        lastName : user.lastName,
+                        avatar   : user.avatar,
+                        color    : user.color,
+                        _id      : user._id
+                    };
+                    res.json(room);
+                }
+            });
+
         });
     }
 );
