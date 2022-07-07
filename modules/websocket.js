@@ -14,7 +14,7 @@ module.exports = {
         io = new Server(server, {
             serveClient: true, // serve socket io files
             transports : ['websocket'], // only websocket can connect
-            allowEIO3: true
+            allowEIO3  : true
         });
 
         // add jwt auth
@@ -38,7 +38,7 @@ module.exports = {
                 socket.disconnect();
             } else {
                 // new user connected
-                socket.nikname  = socketUserId;
+                socket.nikname        = socketUserId;
                 clients[socketUserId] = {
                     email   : socket.decoded_token.data.email,
                     socketId: socket.id,
@@ -103,9 +103,9 @@ module.exports = {
 
                 // update user status
                 clients[socket.nikname]['room'] = roomId;
-                clients[callerId]['room']       = roomId;
 
                 if (clients[callerId]) {
+                    clients[callerId]['room'] = roomId;
                     socket.to(clients[callerId]['socketId']).emit('callAccepted');
                 }
             });
@@ -116,8 +116,13 @@ module.exports = {
                     {_id: ObjectID(roomId)},
                     {$set: {status: 3}}
                 );
+
+                // update user status
+                clients[socket.nikname]['room'] = null;
+
                 if (clients[userId]) {
                     socket.to(clients[userId]['socketId']).emit('callRejected');
+                    clients[userId]['room'] = null;
                 }
             });
 
@@ -170,7 +175,7 @@ module.exports = {
                 if (clients[socket.nikname]) {
 
                     // user has active room
-                    if(clients[socket.nikname]['room']) {
+                    if (clients[socket.nikname]['room']) {
                         // get room info
                         db.getDB().collection('calls').findOne({
                             _id: ObjectID(clients[socket.nikname]['room'])
@@ -191,11 +196,11 @@ module.exports = {
                             }
 
                             if (clients[peerUser]) {
-                                socket.to(clients[peerUser]['socketId']).emit('endCall',room._id);
+                                socket.to(clients[peerUser]['socketId']).emit('endCall', room._id);
                             }
 
-                            clients[room.caller.toString()]['room']   = null;
-                            if(clients[room.receiver]) {
+                            clients[room.caller.toString()]['room'] = null;
+                            if (clients[room.receiver]) {
                                 clients[room.receiver.toString()]['room'] = null;
                             }
                         });
@@ -203,7 +208,7 @@ module.exports = {
 
                     setTimeout(() => {
                         delete clients[socket.nikname];
-                    },200);
+                    }, 200);
                 }
 
             });
