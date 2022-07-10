@@ -94,7 +94,7 @@ module.exports = {
                 }
             });
 
-            socket.on('acceptCall', function (callerId, roomId) {
+            socket.on('acceptCall', function (callerId, roomId, peerId) {
                 // update db status (accepted)
                 db.getDB().collection('calls').updateOne(
                     {_id: ObjectID(roomId)},
@@ -106,7 +106,7 @@ module.exports = {
 
                 if (clients[callerId]) {
                     clients[callerId]['room'] = roomId;
-                    socket.to(clients[callerId]['socketId']).emit('callAccepted');
+                    socket.to(clients[callerId]['socketId']).emit('callAccepted', peerId);
                 }
             });
 
@@ -149,26 +149,26 @@ module.exports = {
 
             });
 
-            // Send Offer To Start Connection
-            socket.on('offer', (userId, description) => {
-                if (clients[userId]) {
-                    socket.to(clients[userId]['socketId']).emit('offer', socket.nikname, description);
-                }
-            });
-
-            // Send Answer From Offer Request
-            socket.on('answer', (userId, description) => {
-                if (clients[userId]) {
-                    socket.to(clients[userId]['socketId']).emit('answer', socket.nikname, description);
-                }
-            });
-
-            // Send Signals to Establish the Communication Channel
-            socket.on('candidate', (userId, signal) => {
-                if (clients[userId]) {
-                    socket.to(clients[userId]['socketId']).emit('candidate', socket.nikname, signal);
-                }
-            });
+            // // Send Offer To Start Connection
+            // socket.on('offer', (userId, description) => {
+            //     if (clients[userId]) {
+            //         socket.to(clients[userId]['socketId']).emit('offer', socket.nikname, description);
+            //     }
+            // });
+            //
+            // // Send Answer From Offer Request
+            // socket.on('answer', (userId, description) => {
+            //     if (clients[userId]) {
+            //         socket.to(clients[userId]['socketId']).emit('answer', socket.nikname, description);
+            //     }
+            // });
+            //
+            // // Send Signals to Establish the Communication Channel
+            // socket.on('candidate', (userId, signal) => {
+            //     if (clients[userId]) {
+            //         socket.to(clients[userId]['socketId']).emit('candidate', socket.nikname, signal);
+            //     }
+            // });
 
             socket.on("disconnect", function () {
 
