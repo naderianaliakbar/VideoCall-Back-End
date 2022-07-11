@@ -39,7 +39,8 @@ router.post(
 
                 // send token and user info
                 res.json({
-                    token: token
+                    token       : token,
+                    refreshToken: token
                 });
             }
         });
@@ -86,6 +87,14 @@ router.get(
     }
 );
 
+// GET ME INFO
+router.get(
+    '/refreshToken',
+    function (req, res) {
+        res.sendStatus(200);
+    }
+);
+
 // REGISTER POST
 router.post(
     '/register',
@@ -129,7 +138,8 @@ router.post(
 
                 // send token and user info
                 res.json({
-                    token: token
+                    token       : token,
+                    refreshToken: token,
                 });
             } else {
                 return res.status(406).json({
