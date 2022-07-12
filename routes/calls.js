@@ -4,6 +4,7 @@ const {body, validationResult, param} = require('express-validator');
 const db                              = require('../modules/db');
 const {authenticateToken}             = require("../modules/auth");
 const {ObjectID}                      = require("mongodb");
+const persianDate                     = require('persian-date');
 
 /*
  * STATUS OF CALLS
@@ -13,6 +14,7 @@ const {ObjectID}                      = require("mongodb");
  *  3 => rejected
  *  4 => busy
  *  5 => ended
+ *  6 => offline
  *  */
 
 /*
@@ -116,6 +118,65 @@ router.get(
                     res.json(room);
                 }
             });
+
+        });
+    }
+);
+
+router.get(
+    '/',
+    authenticateToken,
+    function (req, res) {
+
+        // get room users
+        db.getDB().collection('calls').find({
+            $or: [{receiver: ObjectID(req.user.data.id)}, {caller: ObjectID(req.user.data.id)}]
+        }).limit(20).sort( { startDate: -1 } ).toArray((error, calls) => {
+            let users = [];
+
+            if (calls.length) {
+                // find peer user in calls
+                calls.forEach((call, index) => {
+                    let peerUser             = call.caller.toString() === req.user.data.id ? call.receiver : call.caller;
+                    calls[index]['peerUser'] = peerUser.toString();
+                    if (!users.includes(peerUser)) {
+                        users.push(peerUser);
+                    }
+                });
+
+
+                // find users data
+                db.getDB().collection('users').find({
+                    _id: {$in: users}
+                }).project({firstName: 1, lastName: 1, avatar: 1, color: 1, _id: 1}).toArray((error, users) => {
+                    users.forEach((user) => {
+                        calls.forEach((call, index) => {
+                            if (call.peerUser === user._id.toString()) {
+                                calls[index]['user'] = user;
+
+                                let startDate                   = new persianDate(call.startDate);
+                                calls[index]['startDateJalali'] = startDate.toLocale('fa').format('D MMMM H:m');
+                                startDate.toCalendar('gregorian');
+                                calls[index]['startDate'] = startDate.toLocale('en').format('D MMMM H:m');
+                                calls[index]['creator'] = call.caller.toString() === req.user.data.id;
+
+                                delete calls[index]['receiver'];
+                                delete calls[index]['caller'];
+                                delete calls[index]['peerUser'];
+                                delete calls[index]['endDate'];
+                                delete calls[index]['status'];
+                            }
+                        });
+                    });
+                    res.json({
+                        calls: calls
+                    });
+                });
+            } else {
+                res.json({
+                    calls: []
+                });
+            }
 
         });
     }

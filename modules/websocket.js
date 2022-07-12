@@ -66,6 +66,7 @@ module.exports = {
 
                         // update user status
                         clients[socket.nikname]['room'] = roomId;
+                        clients[userId]['room']         = roomId;
 
                         socket.to(clients[userId]['socketId']).emit('notifyCall', roomId);
                         socket.emit('prepareCall', {
@@ -87,6 +88,12 @@ module.exports = {
                     }
 
                 } else {
+                    // update db status (offline)
+                    db.getDB().collection('calls').updateOne(
+                        {_id: ObjectID(roomId)},
+                        {$set: {status: 6}}
+                    );
+
                     socket.emit('prepareCall', {
                         status : false,
                         message: 'offline'
