@@ -27,9 +27,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors());
 
 // add routes
-app.use('/api/v1/users', usersRouter);
-app.use('/api/v1/auth', authRouter);
-app.use('/api/v1/contacts', contactsRouter);
-app.use('/api/v1/calls', callsRouter);
+app.use('/v1/users', usersRouter);
+app.use('/v1/auth', authRouter);
+app.use('/v1/contacts', contactsRouter);
+app.use('/v1/calls', callsRouter);
 
 module.exports = app;
