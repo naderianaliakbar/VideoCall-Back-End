@@ -4,7 +4,8 @@ let _db;
 
 module.exports = {
     connect: function (callback) {
-        const uri    = "mongodb+srv://exoroya:<f5lQmGwM1RjoAXAb>@exoroya.dq090yy.mongodb.net/?retryWrites=true&w=majority";
+        const password = encodeURIComponent('f5lQmGwM1RjoAXAb');
+        const uri    = `mongodb+srv://exoroya:${password}@exoroya.dq090yy.mongodb.net/?retryWrites=true&w=majority`;
         const client = new MongoClient(uri, {
             useNewUrlParser   : true,
             useUnifiedTopology: true,
@@ -12,6 +13,7 @@ module.exports = {
         });
         client.connect(err => {
             _db = client.db(process.env.MongoDB_DATABASE);
+            console.log('db connected');
             return callback(err);
         });
     },
