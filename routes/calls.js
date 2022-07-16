@@ -154,10 +154,12 @@ router.get(
                             if (call.peerUser === user._id.toString()) {
                                 calls[index]['user'] = user;
 
+                                let startDateTime = ' ' + call.startDate.getHours() + ':' + call.startDate.getMinutes();
+
                                 let startDate                   = new persianDate(call.startDate);
-                                calls[index]['startDateJalali'] = startDate.toLocale('fa').format('D MMMM H:m');
+                                calls[index]['startDateJalali'] = startDate.toLocale('fa').format('D MMMM') + startDateTime;
                                 startDate.toCalendar('gregorian');
-                                calls[index]['startDate'] = startDate.toLocale('en').format('D MMMM H:m');
+                                calls[index]['startDate'] = startDate.toLocale('en').format('D MMMM') + startDateTime;
                                 calls[index]['creator'] = call.caller.toString() === req.user.data.id;
 
                                 delete calls[index]['receiver'];
