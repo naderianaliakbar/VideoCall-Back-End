@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // init app and requirement
-let app                   = require('../app');
-let debug                 = require('debug')('exoroya-backend:server');
-let http                  = require('http');
-let db                    = require('../modules/db');
-let websocket             = require('../modules/websocket');
-let port                  = normalizePort(process.env.PORT || '443');
-const jwt                 = require("jsonwebtoken");
-const {ExpressPeerServer} = require("peer");
+let app            = require('../app');
+let debug          = require('debug')('exoroya-backend:server');
+let http           = require('http');
+let db             = require('../modules/db');
+let websocket      = require('../modules/websocket');
+let port           = normalizePort(process.env.PORT || '443');
+const jwt          = require("jsonwebtoken");
+const {PeerServer} = require("peer");
 
 // set port
 app.set('port', port);
@@ -24,14 +24,12 @@ db.connect(function (err, client) {
 websocket.createServer(server);
 
 // create peer server
-const peerServer = ExpressPeerServer(server);
+const peerServer = PeerServer({port: 9000});
 peerServer.on('connection', client => {
     jwt.verify(client.token, process.env.TOKEN_SECRET, (err, user) => {
         if (err) client.socket.close();
     });
 })
-
-app.use('/peerjs', peerServer);
 
 // listen server
 server.listen(port);
