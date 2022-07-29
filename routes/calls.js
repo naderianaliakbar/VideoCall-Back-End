@@ -166,7 +166,6 @@ router.get(
                                 delete calls[index]['caller'];
                                 delete calls[index]['peerUser'];
                                 delete calls[index]['endDate'];
-                                delete calls[index]['status'];
                             }
                         });
                     });
