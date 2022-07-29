@@ -2,6 +2,8 @@ const {Server}    = require("socket.io");
 const socketIoJwt = require('socketio-jwt');
 const db          = require('../modules/db');
 const {ObjectID}  = require("mongodb");
+const axios       = require("axios");
+let {sendSMS}   = require("./helper");
 
 // init variables
 let io;
@@ -93,6 +95,17 @@ module.exports = {
                         {_id: ObjectID(roomId)},
                         {$set: {status: 6}}
                     );
+
+                    // send sms to user
+
+                    //get user contacts
+                    db.getDB().collection('users').findOne({
+                        _id: ObjectID(userId)
+                    }).then(function (user) {
+                        if (user && user.phone && user.validate) {
+                            sendSMS(user.phone,'یک تماس بی پاسخ در ExoRoya دارید');
+                        }
+                    });
 
                     socket.emit('prepareCall', {
                         status : false,

@@ -7,6 +7,8 @@ const {ObjectID}               = require("mongodb");
 const md5                      = require('md5');
 let mime                       = require('mime');
 const fs                       = require("fs");
+const axios                    = require("axios");
+let {sendSMS}                  = require("../modules/helper");
 
 // AVATAR PUT
 router.put(
@@ -160,5 +162,79 @@ router.put(
 
     }
 );
+
+router.put(
+    '/validate',
+    authenticateToken,
+    body('phone').notEmpty().isNumeric().isLength({max: 11}),
+    function (req, res) {
+
+        // check validation
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({errors: errors.array()});
+        }
+
+        // get User validate code in db
+        db.getDB().collection('validates').findOne({
+            _user: ObjectID(req.user.data.id)
+        }).then(async (validate) => {
+            if (req.body.validationCode) {
+                // get User validate code in db
+                if (validate) {
+                    if (validate.code === req.body.validationCode) {
+                        // update db
+                        db.getDB().collection('users').updateOne({
+                            _id: ObjectID(req.user.data.id)
+                        }, {$set: {validate: true}}).then(function () {
+                            return res.status(200).json({
+                                message: 'Validation completed'
+                            });
+                        });
+                    } else {
+                        return res.status(400).json({
+                            message: 'The validation code is incorrect'
+                        });
+                    }
+                } else {
+                    return res.status(400).json({
+                        message: 'The code has expired'
+                    });
+                }
+            } else {
+
+                if (validate) {
+                    return res.sendStatus(400);
+                }
+
+                let code = '';
+                for (let i = 0; i < 5; i++) {
+                    code += '' + Math.floor(Math.random() * 10);
+                }
+                db.getDB().collection('validates').insertOne({
+                    _user: ObjectID(req.user.data.id),
+                    code : code
+                }).then(result => {
+                    let id   = result.insertedId;
+                    let text = "code:" + code + "\n" + "به ExoRoya خوش آمدید!";
+                    sendSMS(req.body.phone, text, () => {
+                        setTimeout(() => {
+                            db.getDB().collection('validates').deleteOne({_id: id});
+                        }, 120000);
+
+                        // update user info in db
+                        db.getDB().collection('users').updateOne({
+                            _id: ObjectID(req.user.data.id)
+                        }, {$set: {phone: req.body.phone}}).then(function () {
+                            return res.status(200).json({
+                                message: 'Code sent'
+                            });
+                        });
+                    })
+                });
+            }
+        });
+
+    });
 
 module.exports = router;

@@ -78,7 +78,9 @@ router.get(
                         lastName : user.lastName,
                         email    : user.email,
                         color    : user.color,
-                        avatar   : user.avatar
+                        avatar   : user.avatar,
+                        phone    : user.phone ?? '',
+                        validate : user.validate ?? false,
                     }
                 });
             }
@@ -102,6 +104,7 @@ router.post(
     body('firstName').isString().isLength({max: 20}), // check first name
     body('lastName').isString().isLength({max: 20}), // check last name
     body('password').isLength({min: 8}), // check password is 8 character
+    body('phone').isNumeric().isLength({max: 11}), // check phone is 11 character
     function (req, res) {
         // check validation
         const errors = validationResult(req);
@@ -125,6 +128,8 @@ router.post(
                     lastName : req.body.lastName,
                     email    : req.body.email,
                     password : md5(req.body.password),
+                    phone    : req.body.phone,
+                    validate : false,
                     color    : color,
                     role     : 0
                 });
