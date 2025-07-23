@@ -1,85 +1,86 @@
-# VideoCall Back-End
+## 📦 VideoCall Back‑End
 
-This is the back-end service for the **VideoCall** project. It provides APIs and WebSocket connections for managing real-time video calls, user authentication, signaling, and data exchange between clients.
+A RESTful API and signaling server setup built with Node.js and Express.js to support real-time video call functionality.
 
-## Features
+### 🚀 Features
 
-- **WebRTC Signaling Server** for real-time communication.
-- **RESTful APIs** for user and room management.
-- **Socket.io Integration** for real-time events and message broadcasting.
-- **Authentication** (JWT or token-based).
-- **Scalable Architecture** designed for handling multiple concurrent video calls.
+* User authentication via JWT
+* Secure password storage using bcrypt
+* Establishing and managing video call sessions
+* WebRTC signaling implemented with Socket.IO
+* MongoDB for user and session data (via Mongoose)
+* Input validation using Joi
+* Structured error logging and handling
 
-## Technologies Used
+### ⚙️ Tech Stack
 
-- **Node.js** (JavaScript runtime)
-- **Express.js** (HTTP server)
-- **Socket.io** (real-time communication)
-- **WebRTC** (peer-to-peer connections)
-- **MongoDB / Mongoose** (database and data modeling)
-- **dotenv** (environment variable management)
-- **CORS** (cross-origin resource sharing)
+| Layer           | Technology            |
+| --------------- | --------------------- |
+| Runtime         | Node.js               |
+| Framework       | Express.js            |
+| Database        | MongoDB with Mongoose |
+| Authentication  | JWT + bcrypt          |
+| Real‑time Comm. | Socket.IO + WebRTC    |
+| Validation      | Joi                   |
 
-## Installation
+### 🧩 Installation & Setup
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/naderianaliakbar/VideoCall-Back-End.git
-   cd VideoCall-Back-End
-Install dependencies:
-
-bash
-Copy
-Edit
+```bash
+git clone https://github.com/naderianaliakbar/VideoCall-Back-End.git
+cd VideoCall-Back-End
 npm install
-Create a .env file in the root directory and configure the following:
+```
 
-env
-Copy
-Edit
+Copy `.env.example` to `.env` and configure:
+
+```dotenv
 PORT=5000
-MONGO_URI=mongodb://localhost:27017/videocall
-JWT_SECRET=your_secret_key
-Run the server:
+MONGODB_URI=mongodb://localhost:27017/videocall-db
+JWT_SECRET=your_jwt_secret
+```
 
-bash
-Copy
-Edit
-npm start
-Or for development with auto-reload:
+### 🏁 Running the Server
 
-bash
-Copy
-Edit
-npm run dev
-API Endpoints
-Auth
-POST /api/auth/register - Register a new user
+```bash
+npm run dev     # Development mode with nodemon
+npm start       # Production mode
+```
 
-POST /api/auth/login - Login and receive a token
+Server listens on `http://localhost:5000`.
 
-Rooms
-POST /api/rooms - Create a new call room
+### 🛠️ API & Signaling Endpoints
 
-GET /api/rooms/:id - Get room details
+* **Auth**
 
-Signaling
-WebSocket (Socket.io) events for WebRTC signaling (offer, answer, candidate).
+  * `POST /api/auth/register` – Register a new user
+  * `POST /api/auth/login` – Login and receive JWT
 
-Project Structure
-mathematica
-Copy
-Edit
-VideoCall-Back-End/
-├── src/
-│   ├── controllers/
-│   ├── models/
-│   ├── routes/
-│   ├── services/
-│   └── app.js
-├── .env.example
-├── package.json
-└── README.md
+* **Users** *(protected)*
 
-License
-This project is licensed under the MIT License.
+  * `GET /api/users` – List all users
+  * `GET /api/users/:id` – Get user by ID
+
+* **VideoCall Sessions** *(protected)*
+
+  * `POST /api/sessions` – Create a new video call session
+  * `GET /api/sessions/:id` – Retrieve session details
+
+* **WebSocket Signaling** (via Socket.IO)
+
+  * `join-session` – User joins a session room
+  * `signal` – Exchanging WebRTC offer/answer and ICE candidates
+  * `leave-session` – User exits a session
+
+### 📘 Project Structure
+
+```
+src/
+├── controllers/
+├── models/
+├── routes/
+├── socket/
+├── middlewares/
+├── utils/
+└── index.js
+```
+
